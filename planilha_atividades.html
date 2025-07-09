@@ -133,9 +133,22 @@ form.addEventListener("submit", function(e) {
     const status = document.getElementById("status").value;
 
     if (data && nome && descricao && setor && prazo && responsavel && status) {
-        dados.push({ id, data, nome, descricao, setor, prazo, responsavel, status });
+        const atividade = { id, data, nome, descricao, setor, prazo, responsavel, status };
+        dados.push(atividade);
         renderizar();
         form.reset();
+
+        // Envia para o Google Sheets automaticamente
+        fetch('14b-e6LI3u-iMbfGlS15Q56_m2KIfBDkOQ02qUYYdMAE', {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(atividade)
+        }).then(() => {
+            console.log("Dados enviados ao Google Sheets.");
+        }).catch(err => {
+            console.error("Erro ao enviar ao Google Sheets:", err);
+        });
     }
 });
 
