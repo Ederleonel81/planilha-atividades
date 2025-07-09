@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Planilha de Atividades com Filtros e Exportação</title>
+<title>Planejamento interno: Metas e objetivos</title>
 <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
     h2 { color: #333; }
@@ -11,10 +11,12 @@
     th { background-color: #4CAF50; color: white; }
     input, select { padding: 5px; margin: 5px; width: 200px; }
     button { padding: 5px 10px; margin: 5px; }
+    .status-em-andamento { color: green; font-weight: bold; }
+    .atrasado { color: red; font-weight: bold; }
 </style>
 </head>
 <body>
-<h2>Planilha de Atividades/Metas e objetivos Interno</h2>
+<h2>Planejamento interno: Metas e objetivos</h2>
 
 <form id="form">
     Data: <input type="date" id="data" required><br>
@@ -31,8 +33,7 @@
         <option value="Concluído">Concluído</option>
     </select><br>
     <button type="submit">Adicionar Atividade</button>
-    <button type="button" id="limpar">Limpar Todos os Dados</button>
-    <button type="button" id="exportar">Exportar CSV</button>
+    <button type="button" id="exportar">Exportar Excel</button>
 </form>
 
 <h3>Filtros de Busca</h3>
@@ -63,6 +64,7 @@ Status:
     <tbody></tbody>
 </table>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 let dados = JSON.parse(localStorage.getItem('atividades')) || [];
 
@@ -79,6 +81,8 @@ function renderizar() {
     const filtroSetor = document.getElementById("filtroSetor").value.toLowerCase();
     const filtroStatus = document.getElementById("filtroStatus").value;
 
+    const hoje = new Date().toISOString().split('T')[0];
+
     dados.filter(item => {
         return (
             (item.nome.toLowerCase().includes(filtroNome)) &&
@@ -87,6 +91,17 @@ function renderizar() {
         );
     }).forEach((item, index) => {
         const row = document.createElement("tr");
+        let statusClass = "";
+        let statusText = item.status;
+
+        if (item.status === "Em andamento") {
+            statusClass = "status-em-andamento";
+        }
+        if (item.prazo < hoje && item.status !== "Concluído") {
+            statusClass = "atrasado";
+            statusText = "Atrasado";
+        }
+
         row.innerHTML = `
             <td>${item.id}</td>
             <td>${item.data}</td>
@@ -95,7 +110,7 @@ function renderizar() {
             <td>${item.setor}</td>
             <td>${item.prazo}</td>
             <td>${item.responsavel}</td>
-            <td>${item.status}</td>
+            <td class="${statusClass}">${statusText}</td>
             <td>
                 <button onclick="editar(${index})">Editar</button>
                 <button onclick="deletar(${index})">Excluir</button>
@@ -128,23 +143,14 @@ function editar(index) {
     const item = dados[index];
     const novoData = prompt("Data:", item.data);
     const novoNome = prompt("Nome:", item.nome);
-    const novaDescricao = prompt("Descrição das Atividades:", item.descricao);
+    const novaDescricao = prompt("Descrição:", item.descricao);
     const novoSetor = prompt("Setor:", item.setor);
     const novoPrazo = prompt("Prazo:", item.prazo);
     const novoResponsavel = prompt("Responsável:", item.responsavel);
-    const novoStatus = prompt("Status (Pendente, Em andamento, Concluído):", item.status);
+    const novoStatus = prompt("Status:", item.status);
 
     if (novoData && novoNome && novaDescricao && novoSetor && novoPrazo && novoResponsavel && novoStatus) {
-        dados[index] = {
-            id: item.id,
-            data: novoData,
-            nome: novoNome,
-            descricao: novaDescricao,
-            setor: novoSetor,
-            prazo: novoPrazo,
-            responsavel: novoResponsavel,
-            status: novoStatus
-        };
+        dados[index] = { id: item.id, data: novoData, nome: novoNome, descricao: novaDescricao, setor: novoSetor, prazo: novoPrazo, responsavel: novoResponsavel, status: novoStatus };
         renderizar();
     }
 }
@@ -156,27 +162,11 @@ function deletar(index) {
     }
 }
 
-document.getElementById("limpar").addEventListener("click", function() {
-    if (confirm("Tem certeza que deseja limpar todos os dados?")) {
-        dados = [];
-        renderizar();
-    }
-});
-
 document.getElementById("exportar").addEventListener("click", function() {
-    let csv = "ID,Data,Nome,Descrição,Setor,Prazo,Responsável,Status\n";
-    dados.forEach(item => {
-        csv += `${item.id},${item.data},${item.nome},${item.descricao},${item.setor},${item.prazo},${item.responsavel},${item.status}\n`;
-    });
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "atividades.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(dados);
+    XLSX.utils.book_append_sheet(wb, ws, "Atividades");
+    XLSX.writeFile(wb, "PlanejamentoInterno.xlsx");
 });
 
 document.getElementById("filtroNome").addEventListener("input", renderizar);
@@ -187,3 +177,4 @@ renderizar();
 </script>
 </body>
 </html>
+
