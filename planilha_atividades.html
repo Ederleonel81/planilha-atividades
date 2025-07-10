@@ -141,7 +141,9 @@ form.addEventListener("submit", function(e) {
         // Envia para o Google Sheets automaticamente
         fetch('https://script.google.com/macros/s/AKfycbzuGCbNgww51uI3n-RJLTQpy0DGdmQJzJg-P44oEbss_x9nmeBOaB4I7gEX3OYt1YBX/exec', {
             method: 'POST',
-            mode: 'no-cors',
+            mode: 'cors',
+            .then(response => response.text())
+.then(data => alert(data)),
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(atividade)
         }).then(() => {
