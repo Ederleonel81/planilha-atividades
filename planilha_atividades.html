@@ -68,7 +68,13 @@ Status:
 <script>
 let dados = JSON.parse(localStorage.getItem('atividades')) || [];
 
-function gerarID() {
+function gerarID() 
+function formatarDataBR(dataISO) {
+    if (!dataISO) return "";
+    const [ano, mes, dia] = dataISO.split("-");
+    return `${dia}/${mes}/${ano}`;
+}
+{
     return dados.length > 0 ? Math.max(...dados.map(d => d.id)) + 1 : 1;
 }
 
@@ -104,11 +110,11 @@ function renderizar() {
 
         row.innerHTML = `
             <td>${item.id}</td>
-            <td>${item.data}</td>
+            <td>${formatarDataBR(item.data)}</td>
             <td>${item.nome}</td>
             <td>${item.descricao}</td>
             <td>${item.setor}</td>
-            <td>${item.prazo}</td>
+            <td>${formatarDataBR(item.prazo)}</td>
             <td>${item.responsavel}</td>
             <td class="${statusClass}">${statusText}</td>
             <td>
