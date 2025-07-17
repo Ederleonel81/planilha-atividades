@@ -1,3 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Planejamento interno: Metas e objetivos</title>
+<style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+    h2 { color: #333; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #4CAF50; color: white; }
+    input, select { padding: 5px; margin: 5px; width: 200px; }
+    button { padding: 5px 10px; margin: 5px; }
+    .status-em-andamento { color: green; font-weight: bold; }
+    .atrasado { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
+<h2>Planejamento interno: Metas e objetivos</h2>
+
+<form id="form">
+    Data: <input type="date" id="data" required><br>
+    Nome: <input type="text" id="nome" required><br>
+    Descrição das Atividades: <input type="text" id="descricao" required><br>
+    Setor: <input type="text" id="setor" required><br>
+    Prazo: <input type="date" id="prazo" required><br>
+    Responsável: <input type="text" id="responsavel" required><br>
+    Status:
+    <select id="status" required>
+        <option value="">Selecione</option>
+        <option value="Pendente">Pendente</option>
+        <option value="Em andamento">Em andamento</option>
+        <option value="Concluído">Concluído</option>
+    </select><br>
+    <button type="submit">Adicionar Atividade</button>
+    <button type="button" id="exportar">Exportar Excel</button>
+</form>
+
+<h3>Filtros de Busca</h3>
+Nome: <input type="text" id="filtroNome" placeholder="Filtrar por Nome">
+Setor: <input type="text" id="filtroSetor" placeholder="Filtrar por Setor">
+Status:
+<select id="filtroStatus">
+    <option value="">Todos</option>
+    <option value="Pendente">Pendente</option>
+    <option value="Em andamento">Em andamento</option>
+    <option value="Concluído">Concluído</option>
+</select>
+
+<table id="tabela">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Data</th>
+            <th>Nome</th>
+            <th>Descrição</th>
+            <th>Setor</th>
+            <th>Prazo</th>
+            <th>Responsável</th>
+            <th>Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+let dados = JSON.parse(localStorage.getItem('atividades')) || [];
+
 function gerarID() {
     return dados.length > 0 ? Math.max(...dados.map(d => d.id)) + 1 : 1;
 }
@@ -8,6 +78,9 @@ function formatarDataBR(dataISO) {
     return `${dia}/${mes}/${ano}`;
 }
 
+const tabela = document.querySelector("#tabela tbody");
+const form = document.getElementById("form");
+
 function renderizar() {
     tabela.innerHTML = "";
     const filtroNome = document.getElementById("filtroNome").value.toLowerCase();
@@ -16,13 +89,13 @@ function renderizar() {
 
     const hoje = new Date().toISOString().split('T')[0];
 
-    const filtrados = dados.filter(item =>
-        item.nome.toLowerCase().includes(filtroNome) &&
-        item.setor.toLowerCase().includes(filtroSetor) &&
-        (filtroStatus === "" || item.status === filtroStatus)
-    );
-
-    filtrados.forEach((item, index) => {
+    dados.filter(item => {
+        return (
+            (item.nome.toLowerCase().includes(filtroNome)) &&
+            (item.setor.toLowerCase().includes(filtroSetor)) &&
+            (filtroStatus === "" || item.status === filtroStatus)
+        );
+    }).forEach((item, index) => {
         const row = document.createElement("tr");
         let statusClass = "";
         let statusText = item.status;
@@ -35,7 +108,7 @@ function renderizar() {
             statusText = "Atrasado";
         }
 
-        row.innerHTML = `
+        row.innerHTML = 
             <td>${item.id}</td>
             <td>${formatarDataBR(item.data)}</td>
             <td>${item.nome}</td>
@@ -48,10 +121,80 @@ function renderizar() {
                 <button onclick="editar(${index})">Editar</button>
                 <button onclick="deletar(${index})">Excluir</button>
             </td>
-        `;
+        ;
         tabela.appendChild(row);
     });
     localStorage.setItem('atividades', JSON.stringify(dados));
 }
+
+form.addEventListener("submit", function(e) {
+    e.preventDefault();
+    const id = gerarID();
+    const data = document.getElementById("data").value;
+    const nome = document.getElementById("nome").value.trim();
+    const descricao = document.getElementById("descricao").value.trim();
+    const setor = document.getElementById("setor").value.trim();
+    const prazo = document.getElementById("prazo").value;
+    const responsavel = document.getElementById("responsavel").value.trim();
+    const status = document.getElementById("status").value;
+
+    if (data && nome && descricao && setor && prazo && responsavel && status) {
+        const atividade = { id, data, nome, descricao, setor, prazo, responsavel, status };
+        dados.push(atividade);
+        renderizar();
+        form.reset();
+
+        // Envia para o Google Sheets automaticamente
+        fetch('https://script.google.com/macros/s/AKfycbwCcYjcBiopplNqOdKUGwV2s2lPVAY_80J5gHUTj-qtVWdWeRP9QruvgQxNlNmj_-NS/exec', {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(atividade)
+        }).then(() => {
+            console.log("Dados enviados ao Google Sheets.");
+        }).catch(err => {
+            console.error("Erro ao enviar ao Google Sheets:", err);
+        });
+    }
+});
+
+function editar(index) {
+    const item = dados[index];
+    const novoData = prompt("Data:", item.data);
+    const novoNome = prompt("Nome:", item.nome);
+    const novaDescricao = prompt("Descrição:", item.descricao);
+    const novoSetor = prompt("Setor:", item.setor);
+    const novoPrazo = prompt("Prazo:", item.prazo);
+    const novoResponsavel = prompt("Responsável:", item.responsavel);
+    const novoStatus = prompt("Status:", item.status);
+
+    if (novoData && novoNome && novaDescricao && novoSetor && novoPrazo && novoResponsavel && novoStatus) {
+        dados[index] = { id: item.id, data: novoData, nome: novoNome, descricao: novaDescricao, setor: novoSetor, prazo: novoPrazo, responsavel: novoResponsavel, status: novoStatus };
+        renderizar();
+    }
+}
+
+function deletar(index) {
+    if (confirm("Deseja excluir esta atividade?")) {
+        dados.splice(index, 1);
+        renderizar();
+    }
+}
+
+document.getElementById("exportar").addEventListener("click", function() {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(dados);
+    XLSX.utils.book_append_sheet(wb, ws, "Atividades");
+    XLSX.writeFile(wb, "PlanejamentoInterno.xlsx");
+});
+
+document.getElementById("filtroNome").addEventListener("input", renderizar);
+document.getElementById("filtroSetor").addEventListener("input", renderizar);
+document.getElementById("filtroStatus").addEventListener("change", renderizar);
+
+renderizar();
+</script>
+</body>
+</html>
 
 
