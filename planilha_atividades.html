@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+nesse codigo preciso que as datas sigam o padrão de dd/mm/AAAA. <!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
@@ -72,12 +72,6 @@ function gerarID() {
     return dados.length > 0 ? Math.max(...dados.map(d => d.id)) + 1 : 1;
 }
 
-function formatarDataBR(dataISO) {
-    if (!dataISO) return "";
-    const [ano, mes, dia] = dataISO.split("-");
-    return `${dia}/${mes}/${ano}`;
-}
-
 const tabela = document.querySelector("#tabela tbody");
 const form = document.getElementById("form");
 
@@ -108,20 +102,20 @@ function renderizar() {
             statusText = "Atrasado";
         }
 
-        row.innerHTML = 
+        row.innerHTML = `
             <td>${item.id}</td>
-            <td>${formatarDataBR(item.data)}</td>
+            <td>${item.data}</td>
             <td>${item.nome}</td>
             <td>${item.descricao}</td>
             <td>${item.setor}</td>
-            <td>${formatarDataBR(item.prazo)}</td>
+            <td>${item.prazo}</td>
             <td>${item.responsavel}</td>
             <td class="${statusClass}">${statusText}</td>
             <td>
                 <button onclick="editar(${index})">Editar</button>
                 <button onclick="deletar(${index})">Excluir</button>
             </td>
-        ;
+        `;
         tabela.appendChild(row);
     });
     localStorage.setItem('atividades', JSON.stringify(dados));
@@ -196,5 +190,7 @@ renderizar();
 </script>
 </body>
 </html>
+
+
 
 
